@@ -106,7 +106,7 @@ def train_cv(model,
     train_loss = 0.0
 
     model.train()
-    for (names, images, labels) in tqdm(train_loader, desc=pbar_desc):
+    for (idx, images, labels) in tqdm(train_loader, desc=pbar_desc):
         num = images.size(0)
 
         images = images.to(device)
@@ -141,7 +141,7 @@ def validate_cv(model,
 
     model.eval()
 
-    for (names, images, labels) in tqdm(val_loader, desc=pbar_desc):
+    for (idx, images, labels) in tqdm(val_loader, desc=pbar_desc):
         num = images.size(0)
 
         images = images.to(device)

@@ -1,6 +1,8 @@
+import datetime
 from pathlib import Path
 
 import albumentations as A
+import pandas as pd
 import torch
 from albumentations.pytorch import ToTensorV2
 from efficientnet_pytorch import EfficientNet
@@ -8,8 +10,31 @@ from pytorch_toolbelt import losses as L
 from torch.utils.data import DataLoader
 
 from src.data import ImageClassificationDataset
+from src.eval import eval_cv, summarize_cv_predictions
 from src.train import fit
 from src.utils import load_splits, get_metrics, get_writer
+
+
+def get_test_df(test_df_path):
+    test_df = pd.read_csv(test_df_path)
+    test_df = test_df[["Id", "images"]]
+
+    idx_list = []
+    image_pathes = []
+    inner_df = test_df.copy()
+    inner_df = inner_df.dropna()
+    for i in range(inner_df.shape[0]):
+        idx = inner_df.iloc[i, 0]
+        images = inner_df.iloc[i, 1]
+
+        for image in images.split(","):
+            idx_list.append(idx)
+            image_pathes.append(image)
+    test_df = pd.DataFrame({
+        "id": idx_list,
+        "image": image_pathes
+    })
+    return test_df
 
 
 def get_augmentations():
@@ -37,52 +62,56 @@ def get_augmentations():
     return transform, test_transform
 
 
-def get_dataloaders(splits, image_path, batch_size):
+def get_dataloaders(image_path, batch_size, splits=None, test_df=None):
     transform, test_transform = get_augmentations()
 
-    train_dataset = ImageClassificationDataset(
-        df=splits["train"],
-        folder=image_path,
-        mode="train",
-        transform=transform
-    )
+    dataloaders = {}
 
-    valid_dataset = ImageClassificationDataset(
-        df=splits["val"],
-        folder=image_path,
-        mode="val",
-        transform=transform
-    )
-    # test_dataset = ImageClassificationDataset(
-    #     df=splits["test"],
-    #     folder=image_path,
-    #     mode="test",
-    #     transform=test_transform
-    # )
+    if splits is not None:
+        train_dataset = ImageClassificationDataset(
+            df=splits["train"],
+            folder=image_path,
+            mode="train",
+            transform=transform
+        )
 
-    train_data_loader = DataLoader(
-        dataset=train_dataset,
-        batch_size=batch_size,
-        shuffle=True,
-    )
+        valid_dataset = ImageClassificationDataset(
+            df=splits["val"],
+            folder=image_path,
+            mode="val",
+            transform=transform
+        )
 
-    val_data_loader = DataLoader(
-        dataset=valid_dataset,
-        batch_size=batch_size,
-        shuffle=False,
-    )
+        train_data_loader = DataLoader(
+            dataset=train_dataset,
+            batch_size=batch_size,
+            shuffle=True,
+        )
 
-    # test_data_loader = DataLoader(
-    #     dataset=test_dataset,
-    #     batch_size=BATCH_SIZE,
-    #     shuffle=False,
-    # )
+        val_data_loader = DataLoader(
+            dataset=valid_dataset,
+            batch_size=batch_size,
+            shuffle=False,
+        )
 
-    dataloaders = {
-        "train": train_data_loader,
-        "val": val_data_loader,
-        #     "test": test_data_loader
-    }
+        dataloaders["train"] = train_data_loader
+        dataloaders["val"] = val_data_loader
+
+    if test_df is not None:
+        test_dataset = ImageClassificationDataset(
+            df=test_df,
+            folder=image_path,
+            mode="test",
+            transform=test_transform
+        )
+
+        test_data_loader = DataLoader(
+            dataset=test_dataset,
+            batch_size=batch_size,
+            shuffle=False,
+        )
+        dataloaders["test"] = test_data_loader
+
     return dataloaders
 
 
@@ -113,7 +142,7 @@ def cv_train_preparation(
     splits = load_splits(folds, val_folds=val_folds, train_folds=train_folds)
 
     dataloaders = get_dataloaders(
-        splits, image_path, batch_size,
+        image_path, batch_size, splits=splits,
     )
 
     metrics = get_metrics()
@@ -143,3 +172,43 @@ def cv_train_preparation(
         writer=writer,
         fit_type="cv"
     )
+
+
+def cv_evaluation_preparation(
+        batch_size,
+        model_name,
+        model_path,
+        n_classes,
+        device
+):
+    states_dir = Path("states") / "cv"
+    data_dir = Path("data")
+    submissions = Path("submissions") / "cv"
+    image_path = data_dir / "images" / "images"
+    test_df_path = data_dir / "test_without_target.csv"
+
+    checkpoint_path = states_dir / model_path
+
+    test_df = get_test_df(test_df_path)
+
+    dataloaders = get_dataloaders(
+        image_path,
+        batch_size,
+        test_df=test_df
+    )
+
+    model = get_model(model_name, n_classes, device)
+
+    checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu"))
+    model.load_state_dict(checkpoint["model_state_dict"])
+    print("Models have been loaded")
+
+    # todo add TTA
+    model = model.to(device)
+
+    submission_df = eval_cv(model, dataloaders["test"], device)
+    submission_df = summarize_cv_predictions(submission_df)
+
+    submission_df.to_csv(
+        submissions / f"{model_name}-{int(datetime.datetime.now().timestamp())}.csv",
+        index=False)

@@ -5,7 +5,7 @@ import fire
 import torch
 import yaml
 
-from cv_preparation import (cv_train_preparation, )
+from cv_preparation import (cv_train_preparation, cv_evaluation_preparation, )
 from nlp_preparation import (nlp_train_preparation, nlp_evaluation_preparation)
 from src.utils import set_seed
 
@@ -47,7 +47,7 @@ def compute_nlp_part(train, evaluate):
             n_classes,
             device)
     if evaluate:
-        eval_conf = config.get("evaluation", {})
+        eval_conf = config.get("evaluate", {})
         model_path = eval_conf.get("model_path")
         nlp_evaluation_preparation(
             batch_size,
@@ -88,9 +88,15 @@ def compute_cv_part(train, evaluate):
             n_classes,
             device)
     if evaluate:
-        eval_conf = config.get("evaluation", {})
+        eval_conf = config.get("evaluate", {})
         model_path = eval_conf.get("model_path")
-        pass
+        cv_evaluation_preparation(
+            batch_size,
+            model_name,
+            model_path,
+            n_classes,
+            device
+        )
 
 
 def main(pipeline_type="cv", train=False, evaluate=False):

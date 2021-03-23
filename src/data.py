@@ -1,7 +1,6 @@
 import cv2
 import torch
 from torch.utils.data import Dataset
-from transformers import AutoTokenizer
 
 from src.utils import text_cleaning
 
@@ -68,8 +67,9 @@ class ImageClassificationDataset(Dataset):
 
     def __getitem__(self, index):
         item = self.df.iloc[index]
+        id_ = item["id"]
         name = item.image
-        label = None
+        label = -1
         if self.mode != "test":
             label = item.source
 
@@ -81,7 +81,7 @@ class ImageClassificationDataset(Dataset):
             transformed = self.transform(image=image)
             image = transformed["image"]
 
-        return name, image, label
+        return id_, image, label
 
     def __len__(self):
         return self.df.shape[0]
