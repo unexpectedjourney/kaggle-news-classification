@@ -4,6 +4,7 @@ from pathlib import Path
 import albumentations as A
 import pandas as pd
 import torch
+import ttach as tta
 from albumentations.pytorch import ToTensorV2
 from efficientnet_pytorch import EfficientNet
 from pytorch_toolbelt import losses as L
@@ -205,6 +206,10 @@ def cv_evaluation_preparation(
 
     # todo add TTA
     model = model.to(device)
+    model = tta.ClassificationTTAWrapper(
+        model,
+        tta.aliases.vlip_transform()
+    )
 
     submission_df = eval_cv(model, dataloaders["test"], device)
     submission_df = summarize_cv_predictions(submission_df)
