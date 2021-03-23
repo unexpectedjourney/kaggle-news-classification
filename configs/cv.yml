@@ -1,0 +1,16 @@
+seed: 42
+batch_size: 32
+model_name: "efficientnet-b4"
+n_classes: 7
+train:
+  train_folds:
+    - 0
+    - 1
+    - 3
+    - 4
+  val_folds:
+    - 2
+  learning_rate: 0.005
+  epochs: 40
+evaluate:
+  model_path: ""
