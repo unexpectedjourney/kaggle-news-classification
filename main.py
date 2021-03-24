@@ -5,6 +5,7 @@ import fire
 import torch
 import yaml
 
+from combined_preparation import all_evaluation_preparation
 from cv_preparation import (cv_train_preparation, cv_evaluation_preparation, )
 from nlp_preparation import (nlp_train_preparation, nlp_evaluation_preparation)
 from src.utils import set_seed
@@ -99,6 +100,50 @@ def compute_cv_part(train, evaluate):
         )
 
 
+def compute_all_parts(train, evaluate):
+    config_path = Path("configs") / "all.yml"
+    config = load_config(config_path)
+
+    seed = config.get("seed")
+    n_classes = config.get("n_classes")
+
+    set_seed(seed)
+
+    cv_conf = config.get("cv", {})
+    nlp_conf = config.get("nlp", {})
+
+
+    if train:
+        pass
+    if evaluate:
+        cv_batch_size = cv_conf.get("batch_size")
+        cv_model_name = cv_conf.get("model_name")
+        cv_eval_conf = cv_conf.get("evaluate", {})
+        cv_model_path = cv_eval_conf.get("model_path")
+        cv_coef = cv_eval_conf.get("coef")
+
+        nlp_batch_size = nlp_conf.get("batch_size")
+        nlp_model_name = nlp_conf.get("model_name")
+        nlp_max_seq_len = nlp_conf.get("max_seq_len")
+        nlp_eval_conf = nlp_conf.get("evaluate", {})
+        nlp_model_path = nlp_eval_conf.get("model_path")
+        nlp_coef = nlp_eval_conf.get("coef")
+
+        all_evaluation_preparation(
+            cv_batch_size,
+            cv_model_name,
+            cv_model_path,
+            cv_coef,
+            nlp_batch_size,
+            nlp_model_name,
+            nlp_max_seq_len,
+            nlp_model_path,
+            nlp_coef,
+            n_classes,
+            device
+        )
+
+
 def main(pipeline_type="cv", train=False, evaluate=False):
     print(
         f"pipeline_type: {pipeline_type}\ntrain: {train}, evaluate: {evaluate}")
@@ -106,7 +151,13 @@ def main(pipeline_type="cv", train=False, evaluate=False):
     if train and evaluate or (not train and not evaluate):
         print("use either train or evaluate param")
         return
-    compute_fn = compute_cv_part if pipeline_type == "cv" else compute_nlp_part
+    if pipeline_type == "cv":
+        compute_fn = compute_cv_part
+    elif pipeline_type == "nlp":
+        compute_fn = compute_nlp_part
+    else:
+        compute_fn = compute_all_parts
+
     compute_fn(train, evaluate)
 
 

@@ -136,6 +136,7 @@ def cv_train_preparation(
 ):
     logs_dir = Path("logs")
     states_dir = Path("states") / "cv"
+    states_dir = Path("/media/antonbabenko/hard/news/states") / "cv"
     folds = Path("folds") / "cv"
     data_dir = Path("data")
     image_path = data_dir / "images" / "images"
@@ -183,6 +184,7 @@ def cv_evaluation_preparation(
         device
 ):
     states_dir = Path("states") / "cv"
+    states_dir = Path("/media/antonbabenko/hard/news/states") / "cv"
     data_dir = Path("data")
     submissions = Path("submissions") / "cv"
     image_path = data_dir / "images" / "images"
@@ -204,16 +206,17 @@ def cv_evaluation_preparation(
     model.load_state_dict(checkpoint["model_state_dict"])
     print("Models have been loaded")
 
-    # todo add TTA
     model = model.to(device)
     model = tta.ClassificationTTAWrapper(
         model,
         tta.aliases.vlip_transform()
     )
 
-    submission_df = eval_cv(model, dataloaders["test"], device)
-    submission_df = summarize_cv_predictions(submission_df)
+    prob_submission_df = eval_cv(model, dataloaders["test"], device)
+    submission_df = summarize_cv_predictions(prob_submission_df)
 
     submission_df.to_csv(
         submissions / f"{model_name}-{int(datetime.datetime.now().timestamp())}.csv",
         index=False)
+
+    return submission_df, prob_submission_df

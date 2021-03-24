@@ -13,4 +13,4 @@ train:
   learning_rate: 0.005
   epochs: 40
 evaluate:
-  model_path: ""
+  model_path: "epoch-39-efficientnet-b4-checkpoint.pt"

@@ -17,7 +17,6 @@ def train_nlp(model,
     train_loss = 0.0
 
     model.train()
-    print(train_loader, type(train_loader))
     for element in tqdm(train_loader, desc=pbar_desc):
         num = element["input_ids"].size(0)
 
@@ -239,7 +238,10 @@ def fit(model,
 
         if val_f1 > best_val_score:
             best_val_score = val_f1
-            checkpoint_name = generate_checkpoint_name(epoch, model_name)
+            checkpoint_name = generate_checkpoint_name(
+                epoch,
+                model_name.replace("/", "-")
+            )
             torch.save(
                 {
                     "epoch": epoch,

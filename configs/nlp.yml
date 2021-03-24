@@ -12,6 +12,6 @@ train:
   val_folds:
     - 2
 #  learning_rate: 0.005
-  epochs: 20
+  epochs: 30
 evaluate:
-  model_path: ""
+  model_path: "epoch-11-youscan-ukr-roberta-base-checkpoint.pt"

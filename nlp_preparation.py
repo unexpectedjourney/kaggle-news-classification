@@ -75,9 +75,11 @@ def get_tokenizer(model_name):
     return tokenizer
 
 
-def get_test_df(test_df_path):
+def get_test_df(test_df_path, tokenizer):
     test_df = pd.read_csv(test_df_path)
-    test_df.text = test_df.title + " " + test_df.text
+    test_df.text = test_df.title + " " + \
+                   tokenizer.sep_token + " " + \
+                   test_df.text
     return test_df
 
 
@@ -93,11 +95,19 @@ def nlp_train_preparation(
 ):
     logs_dir = Path("logs")
     states_dir = Path("states") / "nlp"
+    states_dir = Path("/media/antonbabenko/hard/news/states") / "nlp"
     folds = Path("folds") / "nlp"
 
     splits = load_splits(folds, val_folds=val_folds, train_folds=train_folds)
 
     tokenizer = get_tokenizer(model_name)
+
+    for stage in ["train", "val", "test"]:
+        if not stage in splits or splits[stage].empty:
+            continue
+        splits[stage].text = splits[stage].title + " " + \
+                             tokenizer.sep_token + " " + \
+                             splits[stage].text
 
     dataloaders = get_dataloaders(
         tokenizer,
@@ -105,7 +115,6 @@ def nlp_train_preparation(
         batch_size,
         splits,
     )
-    print(dataloaders)
 
     metrics = get_metrics()
     writer = get_writer(logs_dir, "youscan-ukr-roberta-base")
@@ -151,15 +160,15 @@ def nlp_evaluation_preparation(
         device
 ):
     states_dir = Path("states") / "nlp"
+    states_dir = Path("/media/antonbabenko/hard/news/states") / "nlp"
     data_dir = Path("data")
     submissions = Path("submissions") / "nlp"
     test_df_path = data_dir / "test_without_target.csv"
 
     checkpoint_path = states_dir / model_path
 
-    test_df = get_test_df(test_df_path)
-
     tokenizer = get_tokenizer(model_name)
+    test_df = get_test_df(test_df_path, tokenizer)
 
     dataloaders = get_dataloaders(
         tokenizer,
@@ -180,11 +189,22 @@ def nlp_evaluation_preparation(
 
     model = model.to(device)
 
-    predictions, _ = eval_nlp(model, dataloaders["test"], device)
+    predictions, probs = eval_nlp(model, dataloaders["test"], device)
+    probs = probs.cpu().numpy()
+    probs = probs.T
+
+    result_dict = {
+        key: prob for key, prob in enumerate(probs)
+    }
+    result_dict["Id"] = test_df.Id.tolist()
+
+    prob_submission_df = pd.DataFrame(result_dict)
 
     test_df["Predicted"] = predictions
 
     submission_df = test_df[["Id", "Predicted"]]
     submission_df.to_csv(
-        submissions / f"{model_name}-{int(datetime.datetime.now().timestamp())}.csv",
+        submissions / f"{model_name.replace('/', '-')}-{int(datetime.datetime.now().timestamp())}.csv",
         index=False)
+
+    return submission_df, prob_submission_df
