@@ -5,14 +5,13 @@ cv:
   batch_size: 32
   model_name: "efficientnet-b4"
   evaluate:
-    model_path: "epoch-39-efficientnet-b4-checkpoint.pt
-"
-    coef: 0.39330984840728656
+    model_path: "epoch-39-efficientnet-b4-checkpoint.pt"
+    coef: 0.5
 
 nlp:
-  batch_size: 8
-  model_name: 'youscan/ukr-roberta-base'
+  batch_size: 6
+  model_name: 'xlm-roberta-base'
   max_seq_len: 512
   evaluate:
-    model_path: "epoch-11-youscan-ukr-roberta-base-checkpoint.pt"
-    coef: 0.6066901515927133
+    model_path: "epoch-9-xlm-roberta-base-checkpoint.pt"
+    coef: 0.89

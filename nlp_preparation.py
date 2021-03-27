@@ -12,6 +12,7 @@ from src.eval import eval_nlp
 from src.model import TextClassifier
 from src.train import fit
 from src.utils import (load_splits, get_metrics, get_writer)
+from src.constants import TransformerTitleSeparator
 
 
 def get_dataloaders(
@@ -25,16 +26,16 @@ def get_dataloaders(
 
     if splits is not None:
         train_dataset = TextClassificationDataset(
-            texts=splits["train"]["text"].values.tolist(),
+            df=splits["train"],
             tokenizer=tokenizer,
-            labels=splits["train"]["source"].values.tolist(),
+            mode="train",
             max_seq_length=max_seq_len
         )
 
         valid_dataset = TextClassificationDataset(
-            texts=splits["val"]["text"].values.tolist(),
+            df=splits["val"],
             tokenizer=tokenizer,
-            labels=splits["val"]["source"].values.tolist(),
+            mode="val",
             max_seq_length=max_seq_len
         )
 
@@ -55,8 +56,9 @@ def get_dataloaders(
 
     if test_df is not None:
         test_dataset = TextClassificationDataset(
-            texts=test_df["text"].values.tolist(),
+            df=test_df,
             tokenizer=tokenizer,
+            mode="test",
             max_seq_length=max_seq_len
         )
 
@@ -72,14 +74,15 @@ def get_dataloaders(
 def get_tokenizer(model_name):
     print('Loading tokenizer...')
     tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+    tokenizer.additional_special_tokens.extend([
+        TransformerTitleSeparator.START.value,
+        TransformerTitleSeparator.END.value
+    ])
     return tokenizer
 
 
 def get_test_df(test_df_path, tokenizer):
     test_df = pd.read_csv(test_df_path)
-    test_df.text = test_df.title + " " + \
-                   tokenizer.sep_token + " " + \
-                   test_df.text
     return test_df
 
 
@@ -101,13 +104,6 @@ def nlp_train_preparation(
     splits = load_splits(folds, val_folds=val_folds, train_folds=train_folds)
 
     tokenizer = get_tokenizer(model_name)
-
-    for stage in ["train", "val", "test"]:
-        if not stage in splits or splits[stage].empty:
-            continue
-        splits[stage].text = splits[stage].title + " " + \
-                             tokenizer.sep_token + " " + \
-                             splits[stage].text
 
     dataloaders = get_dataloaders(
         tokenizer,

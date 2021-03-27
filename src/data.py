@@ -2,26 +2,47 @@ import cv2
 import torch
 from torch.utils.data import Dataset
 
-from src.utils import text_cleaning
+from src.utils import (text_cleaning, slight_cleaning)
+from src.constants import TransformerTitleSeparator
+
+
+def separate_title(row):
+    return " ".join([
+        row.title,
+        TransformerTitleSeparator.END.value,
+        row.text,
+    ])
 
 
 class TextClassificationDataset(Dataset):
     def __init__(
             self,
-            texts,
+            df,
             tokenizer,
-            labels=None,
+            mode,
             max_seq_length=512,
     ):
-        self.texts = [text_cleaning(text) for text in texts]
-        # self.texts = texts
-        self.labels = labels
+        inner_df = df.copy()
+
+        self.labels = None
+        if mode != "test":
+            self.labels = df.source.tolist()
+
+        # inner_df.title = inner_df.title.apply(slight_cleaning)
+        # inner_df.texts = inner_df.texts.apply(slight_cleaning)
+        inner_df.title = inner_df.title.apply(text_cleaning)
+        inner_df.text = inner_df.text.apply(text_cleaning)
+
+        self.texts = inner_df.apply(separate_title, axis=1)
+        # self.texts = df.text.tolist()
+
+
         self.label_dict = None
         self.max_seq_length = max_seq_length
 
-        if self.label_dict is None and labels is not None:
+        if self.label_dict is None and self.labels is not None:
             self.label_dict = dict(
-                zip(sorted(set(labels)), range(len(set(labels))))
+                zip(sorted(set(self.labels)), range(len(set(self.labels))))
             )
 
         self.tokenizer = tokenizer

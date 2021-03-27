@@ -1,6 +1,10 @@
-seed: 42
-batch_size: 8
-model_name: 'youscan/ukr-roberta-base'
+seed: 2021
+batch_size: 6
+# model_name: 'youscan/ukr-roberta-base'
+# model_name: 'roberta-large-mnli'
+# model_name: 'deepset/roberta-base-squad2'
+model_name: 'xlm-roberta-base'
+# model_name: 'albert-xxlarge-v2'
 max_seq_len: 512
 n_classes: 7
 train:
@@ -11,7 +15,6 @@ train:
     - 4
   val_folds:
     - 2
-#  learning_rate: 0.005
-  epochs: 30
+  epochs: 10
 evaluate:
-  model_path: "epoch-11-youscan-ukr-roberta-base-checkpoint.pt"
+  model_path: "epoch-9-xlm-roberta-base-checkpoint.pt"
