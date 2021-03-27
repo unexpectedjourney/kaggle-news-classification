@@ -28,10 +28,10 @@ class TextClassificationDataset(Dataset):
         if mode != "test":
             self.labels = df.source.tolist()
 
-        # inner_df.title = inner_df.title.apply(slight_cleaning)
-        # inner_df.texts = inner_df.texts.apply(slight_cleaning)
-        inner_df.title = inner_df.title.apply(text_cleaning)
-        inner_df.text = inner_df.text.apply(text_cleaning)
+        inner_df.title = inner_df.title.apply(slight_cleaning)
+        inner_df.text = inner_df.text.apply(slight_cleaning)
+        # inner_df.title = inner_df.title.apply(text_cleaning)
+        # inner_df.text = inner_df.text.apply(text_cleaning)
 
         self.texts = inner_df.apply(separate_title, axis=1)
         # self.texts = df.text.tolist()
