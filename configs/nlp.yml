@@ -10,11 +10,11 @@ n_classes: 7
 train:
   train_folds:
     - 0
-    - 1
+    - 2
     - 3
     - 4
   val_folds:
-    - 2
+    - 1
   epochs: 10
 evaluate:
-  model_path: "epoch-9-xlm-roberta-base-checkpoint.pt"
+  model_path: "epoch-10-xlm-roberta-base-checkpoint.pt"
